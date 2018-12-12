@@ -8,19 +8,19 @@ BOARDHEIGHT = 10  # number of rows in the board
 
 class PianoMoverRepresentation:
 
-    def __init__(self, board, obs):
+    def __init__(self, board, obj):
         self.board = board
         self.piano = np.where(self.board == 1)
-        self.obs = obs
+        self.obj = obj
 
 
 class PianoMoverState:
 
-    def __init__(self, parent, cost, level, board, obs):
+    def __init__(self, parent, cost, level, board, obj):
         self.parent = parent
         self.cost = cost
         self.level = level
-        self.representation = PianoMoverRepresentation(board, obs)
+        self.representation = PianoMoverRepresentation(board, obj)
 
     def __eq__(self, state):
         if not isinstance(state, PianoMoverState):
@@ -28,12 +28,12 @@ class PianoMoverState:
 
         return np.array_equal(self.representation.board, state.representation.board) and \
                 np.array_equal(self.representation.piano, state.representation.piano) and\
-                self.representation.obs == state.representation.obs
+                self.representation.obj == state.representation.obj
 
     def __hash__(self):
 
         return hash((str(self.representation.board), str(self.representation.piano),\
-                     self.representation.obs))
+                     self.representation.obj))
 
 
 class Game:
@@ -54,8 +54,8 @@ class Game:
 
 class PianoMoverGame(Game):
 
-    def __init__(self, board, obs):
-        self.state = PianoMoverState(None, 0, 0, board, obs)
+    def __init__(self, board, obj):
+        self.state = PianoMoverState(None, 0, 0, board, obj)
 
     def solution(self, state):
         out = (state.representation.board[0][BOARDHEIGHT - 2] == 1) and (state.representation.board[0][BOARDHEIGHT - 1] == 1) and \
@@ -67,7 +67,7 @@ class PianoMoverGame(Game):
         rep = state.representation
         moves = defaultdict(list)
 
-        for i in range(1, 2 + rep.obs):
+        for i in range(1, 2 + rep.obj):
 
             obj = np.where(rep.board == i)
             
@@ -128,22 +128,22 @@ class PianoMoverGame(Game):
                 if free:
                     moves[i].append((+1, 0))
 
-        for i in range(1, 2 + rep.obs):
+        for i in range(1, 2 + rep.obj):
             obj = np.where(rep.board == i)
 
             if len(obj[0]) == 0:
                 break
 
             for move in moves[i]:
-                upM = copy.deepcopy(rep.board)
+                temp = copy.deepcopy(rep.board)
 
                 for j in range(len(obj[0])):
-                    upM[obj[0][j]][obj[1][j]] = 0
+                    temp[obj[0][j]][obj[1][j]] = 0
 
                 for j in range(len(obj[0])):
-                    upM[obj[0][j] + move[0]][obj[1][j] + move[1]] = i
+                    temp[obj[0][j] + move[0]][obj[1][j] + move[1]] = i
 
-                n = PianoMoverState(state, len(obj[0]), state.level + 1, upM, rep.obs)
+                n = PianoMoverState(state, len(obj[0]), state.level + 1, temp, rep.obj)
                 out.add(n)
         return out
 
