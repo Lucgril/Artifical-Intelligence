@@ -1,10 +1,8 @@
 import nltk
-from nltk.corpus import stopwords
-#import pyswip
+from pyswip import Prolog
 
 
 class Planning:
-
     def __init__(self):
         # Define a chunk "grammar", i.e. chunking rules
         self._grammar = r"""
@@ -17,13 +15,13 @@ class Planning:
         self._result = None
 
     def process(self, sentence):
-        #stop_words = set(stopwords.words('english'))
+        # stop_words = set(stopwords.words('english'))
         tokens = nltk.word_tokenize(sentence)
-        #tokens_filtered = []
+        # tokens_filtered = []
 
-        #for t in tokens:
-         #   if t not in stop_words:
-          #      tokens_filtered.append(t)
+        # for t in tokens:
+        #   if t not in stop_words:
+        #      tokens_filtered.append(t)
 
         print(tokens)
 
@@ -42,9 +40,9 @@ class Planning:
                 return True
         return False
 
-    def is_assertion(self):
+    def is_knowledge(self):
         for subtree in self._result.subtrees():
-            if subtree.label() == "knowledge_assertion":
+            if subtree.label() == "knowledge":
                 return True
         return False
 
@@ -71,12 +69,10 @@ class Planning:
                 p_noun = token[0]
 
         if adj and noun:
-            #prolog.assertz(adj + "(" + noun + ")")
-            print("si")
+            prolog.assertz(adj + "(" + noun + ")")
 
         if p_noun and noun:
-            #prolog.assertz(p_noun + "(" + noun + ")")
-            print("no")
+            prolog.assertz(p_noun + "(" + noun + ")")
 
     def add_assertion(self):
         obj1 = None
@@ -119,20 +115,10 @@ class Planning:
                                 adj = leaf[0]
 
         if sent and obj1 and obj2:
-            print("ciao")
-            # prolog.assertz(sent + "(" + obj1 + "," + "obj2" + ")")
-
+            prolog.assertz(sent + "(" + obj1 + "," + "obj2" + ")")
 
         if adj and obj1:
-            print("si")
-            # prolog.assertz(adj + "(" + noun + ")")
-
-
-
-        print(obj1)
-        print(obj2)
-        print(sent)
-        print(adj)
+            prolog.assertz(adj + "(" + obj1 + ")")
 
     def add_query(self):
         obj1 = None
@@ -167,32 +153,104 @@ class Planning:
 
         if sent and obj1 and obj2:
             try:
-                print("ciao")
-                #return bool(list(prolog.query(sent + "(" + obj1 + "," + obj2 + ")")))
+                return bool(list(prolog.query(sent + "(" + obj1 + "," + obj2 + ")")))
             except Exception:
                 return False
         elif obj1 and adj:
             try:
-                print("ciao")
-                #return bool(list(prolog.query(adj + "(" + obj1 + ")")))
+                return bool(list(prolog.query(adj + "(" + obj1 + ")")))
             except Exception:
                 return False
         elif obj1 and obj2:
             if obj2 == "block":
                 try:
-                    print("ciao")
-                    #return bool(list(prolog.query(obj2 + "(" + obj1 + ")")))
+                    return bool(list(prolog.query(obj2 + "(" + obj1 + ")")))
                 except Exception:
                     return False
 
-        print(obj1)
-        print(obj2)
-        print(sent)
-        print(adj)
+    def add_command(self):
+        obj1 = None
+        obj2 = None
+        verb = None
+        print(self._result)
+        for subtree in self._result:
+            if subtree.label() == "verb_at_the_beginning":
+                for object in subtree.subtrees():
+                    if object.label() == "object":
+                        for leaf in object.leaves():
+                            print("leaf" + str(leaf))
+                            if leaf[1] == "NNP":
+                                if obj1 is None:
+                                    obj1 = leaf[0]
+                                else:
+                                    obj2 = leaf[0]
+                            elif leaf[1] == "NN":
+                                obj2 = leaf[0]
 
-prova = Planning()
-#prolog = pyswip.Prolog()
-#prolog.consult("rules.pl")
+                for rest in subtree.subtrees():
+                    if rest.label() != "object":
+                        for leaf in rest.leaves():
+                            print("leaf2" + str(leaf))
+                            if leaf[1] == "VB":
+                                verb = leaf[0]
 
-prova.process("is B a red block")
-prova.add_query()
+        if verb and obj1 and obj2:
+            return verb + "(" + obj1 + "," + obj2 + ")"
+        else:
+            return None
+
+
+if __name__ == "__main__":
+
+    planning = Planning()
+    prolog = Prolog()
+    prolog.consult("rules.pl")
+
+    while True:
+
+        print('Enter your command:')
+        command = input()
+        print(command)
+
+        planning.process(command)
+        objects = planning.get_objects()
+
+        if planning.is_knowledge():
+            for object in objects:
+                planning.add_object(object)
+            planning.add_assertion()
+        elif planning.is_query():
+            result = planning.add_query()
+            if result is None:
+                print("False. Your sentence may be not correct")
+            else:
+                print("The answer is:" + result)
+        else:
+            if planning.is_command():
+                result = planning.add_command()
+
+                if result is not None:
+                    print('GOAL: ' + result)
+                    res = True
+                    try:
+                        list(prolog.query("do([" + result + "])"))
+                        if bool(list(prolog.query(result))):
+                            print("Goal reached!")
+                            moves = list(prolog.query("move(X,Y,Z)"))
+                            print("New positions: ")
+                        else:
+                            print("Please require a correct action.")
+                            res = False
+                    except Exception:
+                        print("Sorry, I am unable to satisfy your request.")
+                    if res:
+                        l = list(prolog.query("on(X,Y)"))
+                        for block in l:
+                            if block['Y'] != 'table':
+                                print(block['X'].upper() + " is on " + block['Y'].upper())
+                            else:
+                                print(block['X'].upper() + " is on " + block['Y'])
+                else:
+                    print("Your sentence does not seem to be correct.")
+            else:
+                print("Your sentence does not seem to be correct.")
