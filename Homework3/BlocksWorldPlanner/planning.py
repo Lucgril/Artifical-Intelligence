@@ -23,8 +23,6 @@ class Planning:
         #   if t not in stop_words:
         #      tokens_filtered.append(t)
 
-        print(tokens)
-
         tagged = nltk.pos_tag(tokens)
         self._result = self._chunker.parse(tagged)
 
@@ -56,30 +54,30 @@ class Planning:
         return objects
 
     def add_object(self, obj):
-        p_noun = None
-        noun = None
+        p_name = None
+        name = None
         adj = None
 
         for token in obj:
             if token[1] == "JJ":
                 adj = token[0]
             elif token[1] == "NN":
-                noun = token[0]
+                p_name = token[0]
             elif token[1] == "NNP":
-                p_noun = token[0]
+                name = token[0]
 
-        if adj and noun:
-            prolog.assertz(adj + "(" + noun + ")")
+        if adj and name:
+            prolog.assertz(adj + "(" + name + ")")
 
-        if p_noun and noun:
-            prolog.assertz(p_noun + "(" + noun + ")")
+        if name and p_name:
+            prolog.assertz(p_name + "(" + name + ")")
 
     def add_assertion(self):
         obj1 = None
         obj2 = None
         sent = None
         adj = None
-        print(self._result)
+
         for subtree in self._result:
             if subtree.label() == "knowledge_assertion":
                 for knowledge in subtree.subtrees():
@@ -108,14 +106,13 @@ class Planning:
                 for rest in subtree.subtrees():
                     if rest.label() != "knowledge" and rest.label() != "object":
                         for leaf in rest.leaves():
-                            print("leaf" + str(rest))
                             if leaf[1] == "IN":
                                 sent = leaf[0]
                             elif leaf[1] == "JJ":
                                 adj = leaf[0]
 
         if sent and obj1 and obj2:
-            prolog.assertz(sent + "(" + obj1 + "," + "obj2" + ")")
+            prolog.assertz(sent + "(" + obj1 + "," + obj2 + ")")
 
         if adj and obj1:
             prolog.assertz(adj + "(" + obj1 + ")")
@@ -125,31 +122,35 @@ class Planning:
         obj2 = None
         sent = None
         adj = None
-        print(self._result)
+
         for subtree in self._result:
             if subtree.label() == "verb_at_the_beginning":
                 for object in subtree.subtrees():
                     if object.label() == "object":
-                        for leaf in object.leaves():
-                            print("leaf" + str(leaf))
-                            if leaf[1] == "NNP":
+                        #result = self.query_object(object)
+
+                        #if result:
+                        for leaf in object:
+                            if leaf[1] == "NNP" or (leaf[1] == "NN" and (leaf[0] == "table" or (leaf[0] == "block" and obj1 is not None))):
                                 if obj1 is None:
                                     obj1 = leaf[0]
                                 else:
                                     obj2 = leaf[0]
-                            elif leaf[1] == "NN":
-                                obj2 = leaf[0]
+                            elif leaf[1] == "JJ":
+                                adj = leaf[0]
+                        #else:
+                            #return False
 
                 for rest in subtree.subtrees():
                     if rest.label() != "object":
-                        for leaf in rest.leaves():
-                            print("leaf2" + str(leaf))
-                            if leaf[1] == "IN":
-                                sent = leaf[0]
-                            elif leaf[1] == "VBD":
-                                adj = leaf[0]
-                            elif leaf[1] == "JJ":
-                                adj = leaf[0]
+                        for leaf in rest:
+                            if len(leaf) > 1:
+                                if leaf[1] == "IN":
+                                    sent = leaf[0]
+                                elif leaf[1] == "VBD":
+                                    adj = leaf[0]
+                                elif leaf[1] == "JJ":
+                                    adj = leaf[0]
 
         if sent and obj1 and obj2:
             try:
@@ -168,31 +169,52 @@ class Planning:
                 except Exception:
                     return False
 
+    def query_object(self, object):
+        obj = None
+        sent = None
+        adj = None
+
+        for token in object:
+            if token[1] == "JJ":
+                adj = token[0]
+            elif token[1] == "NN":
+                sent = token[0]
+            elif token[1] == "NNP":
+                obj = token[0]
+
+        if adj and obj:
+            try:
+                return bool(list(prolog.query(adj + "(" + obj + ")")))
+            except Exception:
+                return False
+        elif sent and obj:
+            try:
+                return bool(list(prolog.query(sent + "(" + obj + ")")))
+            except Exception:
+                return False
+
     def add_command(self):
         obj1 = None
         obj2 = None
         verb = None
-        print(self._result)
+
         for subtree in self._result:
             if subtree.label() == "verb_at_the_beginning":
                 for object in subtree.subtrees():
                     if object.label() == "object":
-                        for leaf in object.leaves():
-                            print("leaf" + str(leaf))
-                            if leaf[1] == "NNP":
+                        for leaf in object:
+                            if leaf[1] == "NNP" or (leaf[1] == "NN" and (leaf[0] == "table")):
                                 if obj1 is None:
                                     obj1 = leaf[0]
                                 else:
                                     obj2 = leaf[0]
-                            elif leaf[1] == "NN":
-                                obj2 = leaf[0]
 
                 for rest in subtree.subtrees():
                     if rest.label() != "object":
-                        for leaf in rest.leaves():
-                            print("leaf2" + str(leaf))
-                            if leaf[1] == "VB":
-                                verb = leaf[0]
+                        for leaf in rest:
+                            if len(leaf) > 1:
+                                if leaf[1] == "IN":
+                                    verb = leaf[0]
 
         if verb and obj1 and obj2:
             return verb + "(" + obj1 + "," + obj2 + ")"
@@ -210,7 +232,6 @@ if __name__ == "__main__":
 
         print('Enter your command:')
         command = input()
-        print(command)
 
         planning.process(command)
         objects = planning.get_objects()
@@ -224,7 +245,7 @@ if __name__ == "__main__":
             if result is None:
                 print("False. Your sentence may be not correct")
             else:
-                print("The answer is:" + result)
+                print("The answer is: " + str(result))
         else:
             if planning.is_command():
                 result = planning.add_command()
@@ -236,20 +257,11 @@ if __name__ == "__main__":
                         list(prolog.query("do([" + result + "])"))
                         if bool(list(prolog.query(result))):
                             print("Goal reached!")
-                            moves = list(prolog.query("move(X,Y,Z)"))
-                            print("New positions: ")
                         else:
                             print("Please require a correct action.")
                             res = False
                     except Exception:
                         print("Sorry, I am unable to satisfy your request.")
-                    if res:
-                        l = list(prolog.query("on(X,Y)"))
-                        for block in l:
-                            if block['Y'] != 'table':
-                                print(block['X'].upper() + " is on " + block['Y'].upper())
-                            else:
-                                print(block['X'].upper() + " is on " + block['Y'])
                 else:
                     print("Your sentence does not seem to be correct.")
             else:
