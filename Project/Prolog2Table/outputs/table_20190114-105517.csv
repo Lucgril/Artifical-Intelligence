@@ -1,0 +1,16 @@
+	object	age	likes	loves	----------	maturity	right_for
+0	['john', '32']	1.0	-	-	-	1.0	-
+1	['agnes', '41']	1.0	-	-	-	1.0	-
+2	['george', '72']	1.0	-	-	-	1.0	-
+3	['ian', '2']	1.0	-	-	-	-	-
+4	['thomas', '25']	1.0	-	-	-	1.0	-
+5	['dick', 'mercedes']	-	1.0	-	-	-	-
+6	['dick', 'wine']	-	1.0	-	-	-	-
+7	['ed', 'wine']	-	1.0	-	-	-	-
+8	['wife(ed)', 'wine']	-	1.0	-	-	-	-
+9	['mary', 'computers']	-	-	1.0	-	-	-
+10	----------	-	-	-	-	-	-
+11	['dick', 'dick']	-	1	-	-	-	-
+12	['dick', 'ed']	-	1	-	-	-	-
+13	['dick', 'wife(ed)']	-	1	-	-	-	-
+14	['mary', 'joe']	-	-	1	-	-	1.0

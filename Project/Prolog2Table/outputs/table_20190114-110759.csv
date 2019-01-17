@@ -1,0 +1,10 @@
+	object	takes	----------	classmates
+0	['jane_doe', 'his201']	1.0	-	-
+1	['jane_doe', 'cs254']	1.0	-	-
+2	['ajit_chandra', 'art302']	1.0	-	-
+3	['ajit_chandra', 'cs254']	1.0	-	-
+4	----------	-	-	-
+5	['jane_doe', 'jane_doe']	-	-	1.0
+6	['jane_doe', 'ajit_chandra']	-	-	1.0
+7	['ajit_chandra', 'ajit_chandra']	-	-	1.0
+8	['ajit_chandra', 'jane_doe']	-	-	1.0
